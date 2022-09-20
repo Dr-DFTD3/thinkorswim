@@ -1,12 +1,11 @@
-## customVolumeData V 1.2
-## dr_phlox
-## written 9/18/22
+## customVolumeData V 2.0
+## written by dr_phlox, 9/18/22
 ## version 1 -> plot buying and selling volume in a single bar
 ## version 2 -> + signinificant volume data, averages, previous day volume etx...
 ## updated: added labels to show volume data
 ##
 declare lower;
-## inputs let user define what labels are displayed
+## Inputs let user define what labels are displayed
 input plotPrevVolume = yes;
 input plot30DayAvg = yes;
 input plotTodaysVolume = yes;
@@ -100,3 +99,4 @@ plot Vol = volume;
 plot VolAvg = Average(volume, barLength);
 VolAvg.SetDefaultColor(Color.WHITE);
 Vol.SetPaintingStrategy(PaintingStrategy.HISTOGRAM);
+
