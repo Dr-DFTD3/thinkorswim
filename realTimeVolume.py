@@ -29,7 +29,6 @@ def sellVol = volume * (high - close) / (high - low);
 plot buySellRatio = 100 * (buyVol) / (buyVol + sellVol);
 
 ## create rectangles to display in the pane to highlight overbought and oversold conditions
-## this is renaming is necessary to allow user to define the levels via inputs above
 plot OverSold = ovrSold;
 plot OverBought = ovrBought;
 
