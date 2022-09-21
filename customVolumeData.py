@@ -6,17 +6,17 @@
 ##
 declare lower;
 ## Inputs let user define what labels are displayed
-input plotPrevVolume = yes;
-input plot30DayAvg = yes;
-input plotTodaysVolume = yes;
-input plotVolumeRatio = yes;
-input plot30BarAvg = yes;
-input plotCurrentVolumeBar = yes;
-input plotBuyingVol = yes;
-input plotSellingVol = yes;
+input ShowPrevVol = yes;
+input Show30DayAvg = yes;
+input ShowTodaysVolume = yes;
+input ShowVolumeRatio = yes;
+input ShowBarAvg = yes;
+input ShowCurrentVolBar = yes;
+input ShowBuyingVolume = yes;
+input ShowSellingVolume = yes;
 
 ## average and comparison user defined values
-input unusualVolume = 200; ## percent
+input unusualVolume = 200; ## units are percent
 input barLength = 50;
 
 
@@ -25,6 +25,7 @@ def prevDayVol = volume(period = "DAY")[2];
 
 
 #### get the average volume over the last 30 days
+## iterate through the builtin array using the fold command, similar to a for loop
 def vol30days =0;
 def volIter = fold idx = 1 to 31 with va = 0 do va+volume(period = "DAY")[idx];
 def volAvg30 = volIter/30;
@@ -39,46 +40,46 @@ def volRatio = Round((todaysVolume / volAvg30) * 100, 0);
 
 
 #### get the average volume from the last "barLength" bars
+## iterate through the builtin array using the fold command, similar to a for loop
 def avgBars = fold id = 1 to 31 with vb =0 do vb+volume[id];
 def avgVolBars = avgBars/barLength;
 #####
 
 def curVolume = volume;
 
-## compute selling volume
-def O = open;
-def H = high;
-def C = close;
-def L = low;
-def V = volume;
-def Selling = V * (H - C) / (H - L);
-def Buying = V * (C - L) / (H - L);
+## compute buying and selling volume using current price action
+## Buy + Sell = V
+## buy volume is obtained by scaling total volume with the advancing side of a bullish candle
+## sell volume is obtained by scaling total volume with the declining side of a bearish candle
+## V(c-l/h-l) + V(h-c/h-l) = V[c - l + h - c]/(h-l) = V(h-l/h-l) = V
+def buyVol = volume * (close - low) / (high - low);
+def sellVol = volume * (high - close) / (high - low);
 
 
 ## labels
-AddLabel(plotPrevVolume, "Prev Day Volume:" + prevDayVol + " ", Color.LIGHT_ORANGE);
+AddLabel(ShowPrevVol, "Prev Day Volume:" + prevDayVol + " ", Color.LIGHT_ORANGE);
 
-AddLabel(plot30DayAvg, "Daily Avg: " + Round(volAvg30, 0), Color.LIGHT_GRAY);
-
-## if the volume is greater than "unusual volume" paint it green, if it is less than unusual but > 100, paint it orange, if it is normal volume, paint it gray
-AddLabel(plotTodaysVolume, "Today: " + todaysVolume, (if volRatio >= unusualVolume then Color.GREEN else if volRatio >= 100 then Color.ORANGE else Color.LIGHT_GRAY));
+AddLabel(Show30DayAvg, "Daily Avg: " + Round(volAvg30, 0), Color.LIGHT_GRAY);
 
 ## if the volume is greater than "unusual volume" paint it green, if it is less than unusual but > 100, paint it orange, if it is normal volume, paint it gray
-AddLabel(plotVolumeRatio, "V/V" + barLength + ": " + volRatio + "%", (if volRatio >= unusualVolume then Color.GREEN else if volRatio >= 100 then Color.ORANGE else Color.WHITE) );
+AddLabel(ShowTodaysVolume, "Today: " + todaysVolume, (if volRatio >= unusualVolume then Color.GREEN else if volRatio >= 100 then Color.ORANGE else Color.LIGHT_GRAY));
 
-AddLabel(plot30BarAvg, "Avg " + barLength + " Bars: " + Round(avgVolBars, 0), Color.LIGHT_GRAY);
+## if the volume is greater than "unusual volume" paint it green, if it is less than unusual but > 100, paint it orange, if it is normal volume, paint it gray
+AddLabel(ShowVolumeRatio, "V/V" + barLength + ": " + volRatio + "%", (if volRatio >= unusualVolume then Color.GREEN else if volRatio >= 100 then Color.ORANGE else Color.WHITE) );
+
+AddLabel(ShowBarAvg, "Avg " + barLength + " Bars: " + Round(avgVolBars, 0), Color.LIGHT_GRAY);
 
 ## if current volume bar is greater than avg of last "barLength" bars, paint is green, else paint it orange
-AddLabel(plotCurrentVolumeBar, "Cur Bar: " + curVolume, (if curVolume >= avgVolBars then Color.GREEN else Color.PINK));
+AddLabel(ShowCurrentVolBar, "Cur Bar: " + curVolume, (if curVolume >= avgVolBars then Color.GREEN else Color.PINK));
 
-AddLabel(plotBuyingVol,"Buying Vol: " + Round(Buying,0) + " ",Color.LIGHT_GREEN);
-AddLabel(plotBuyingVol,"Selling Vol: " +Round(Selling,0) + " ",Color.LIGHT_RED);
+AddLabel(ShowBuyingVolume,"Buying Vol: " + Round(buyVol,0) + " ",Color.LIGHT_GREEN);
+AddLabel(ShowSellingVolume,"Selling Vol: " +Round(sellVol,0) + " ",Color.LIGHT_RED);
 
 ## plotted data
 ##
 ## volume color coded by amount of volume on up-tick versus amount of volume on down-tick
 ## selling volume
-plot SV = Selling;
+plot SV = sellVol;
 SV.SetPaintingStrategy(PaintingStrategy.HISTOGRAM);
 SV.SetDefaultColor(Color.RED);
 SV.HideTitle();
@@ -86,7 +87,8 @@ SV.HideBubble();
 SV.SetLineWeight(5);
 
 ## buying volume
-## we can just use volume since total volume = selling + buying. paint total as green and overlay selling volume with red
+## we can just use volume since total volume = selling + buying. 
+## paint total as green and overlay selling volume with red
 plot BV =  volume;
 BV.SetPaintingStrategy(PaintingStrategy.HISTOGRAM);
 BV.SetDefaultColor(Color.DARK_GREEN);
@@ -100,3 +102,4 @@ plot VolAvg = Average(volume, barLength);
 VolAvg.SetDefaultColor(Color.WHITE);
 Vol.SetPaintingStrategy(PaintingStrategy.HISTOGRAM);
 
+## the endd
