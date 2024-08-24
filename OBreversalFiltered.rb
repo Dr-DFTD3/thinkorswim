@@ -17,6 +17,7 @@
 
 ## Alex (Alex Kingdom) Joe Gonzalez (Dr_Cortex)
 ## 08.20.2023
+## updated 08.24.2024
 
 ## global stuff
 DefineGlobalColor("BullishFVG", Color.GREEN);
@@ -24,9 +25,8 @@ DefineGlobalColor("BearishFVG", Color.RED);
 def dNaN = double.NaN;
  
 ##inputs for OB criteria  
-input OBCandleCount = {"Four", "Five", default "Three"}; #hint OBCandleCount: Number of candles used to define an order block.
-input showAdvBlocks = no; #hint showAdvBlocks: Plot a marker identifying advance blocks in a bullish or bearish series.
-input signalFilter = {"MovingAverage", "FVG", "AdvanceBlocks", default "None"}; #hint signalFilter: Filter spurious bull/bear signals using multiple chart events.
+input OBCandleCount = {"Three_Candle", "Four_Candle", default "3-4 Candle"}; #hint OBCandleCount: Number of candles used to define an order block.
+input signalFilter = {"MovingAverage", "FVG", default "None"}; #hint signalFilter: Filter spurious bull/bear signals using multiple chart events.
 
 ##inputs for FVG criteria
 input fvgSize = 0.05; #hint fvgSize: Percent of movement in price used to define a valid FVG. Smaller values displays all FVG, larger values only displays largest FVG.
@@ -39,7 +39,7 @@ input fastMovAvg = 1; #hint fastMovAvg: Set the length of the fast (short time d
 input slowMovAvg = 9; #hint slowMovAvg: Set the length of the slow (long time duration) moving average
 input showMovAvg = no; #hint showMovAvg: Display the selected fast and slow moving averages
 input shadeMACrossOver = no; #hint shadeMACrossOver: Shade the region between moving averages, changes color when a crossover occurs
-
+input showCandleWeight = no;
 
 AddLabel(yes,"Signal Filter: " + signalFilter + "  ",color.WHITE);
 
@@ -52,26 +52,20 @@ def greenCandles = if close > open then 1 else 0;
 def redCandles = if close < open then 1 else 0;
 def doji = if close == open then 1 else 0;
 
-def bearAbCrit1; 
-def bearAbCrit2;
-def bearAbCrit3;
-
-def bullAbCrit1;
-def bullAbCrit2;
-def bullAbCrit3;
-
-def isBearAdvBlock;
-def isBullAdvBlock;
 def isBullEngulf;
 def isBearEngulf;
+
+def bull3;
+def bull4;
+def bear3;
+def bear4;
+
 
 def bullSignal;
 def bearSignal; 
 
 plot endBearOB;
 plot endBullOB;
-plot bearishAdvBlock;
-plot bullishAdvBlock;
 
 ## begin code for locating and highlighting FVG
 ## define some variables to make code more readable
@@ -163,12 +157,8 @@ mtfBullFvgPlotBottom.SetLineWeight(1);
 mtfBullFvgPlotBottom.SetPaintingStrategy(PaintingStrategy.HORIZONTAL);
 mtfBullFvgPlotBottom.SetDefaultColor(GlobalColor("BullishFVG"));
 
-
-
-
 AddCloud(if shadeFvgRegions then mtfBearFvgBottom else dNaN, if shadeFvgRegions then mtfBearFvgTop else dNaN, GlobalColor("BearishFVG"));
 AddCloud(if shadeFvgRegions then mtfBullFvgTop else dNaN, if shadeFvgRegions then mtfBullFvgBottom else dNaN, GlobalColor("BullishFVG"));
-
 
 ## moving average filtering
 def fastMA = MovingAverage(movAvgType,close,fastMovAvg);
@@ -196,16 +186,8 @@ AddCloud(if shadeMACrossOver then fastMA else dNaN, if shadeMACrossOver then slo
 ## An OB reversal is characterized by 3,4,5 sequential red or green candles, followed by a doji or opposite trend candle
 ## An AdvBlock is characterized by a series of 3 red or green sequential candles
 ## that are advancing the preceeding candle in price and decreasing in body size
-switch(OBCandleCount){
-case Five:
-    bearAbCrit1 = if greenCandles and greenCandles[1]  and greenCandles[2]  and greenCandles[3]  then 1 else 0;
-    bearAbCrit2 = if bearAbCrit1 and close > close[1] and close[1] > close[2] and close[2] > close[3] then 1 else 0;
-    bearAbCrit3 = if bearAbCrit2 and candleBody < candleBody[1] and candleBody[1] < candleBody[2] and candleBody[2] < candleBody[3] then 1 else 0;
-    isBearAdvBlock = if bearAbCrit3 then 1 else 0;
 
-    isBullEngulf =  if (greenCandles[6] or doji[6]) and
-                      redCandles[5] and
-                      redCandles[4] and
+bull3 =  if (greenCandles[4] or doji[4]) and
                       redCandles[3] and
                       redCandles[2] and
                       redCandles[1] and
@@ -213,75 +195,48 @@ case Five:
                         then 1
                     else 0;
 
-    bullAbCrit1 = if redCandles and redCandles[1]  and redCandles[2]  and redCandles[3]  then 1 else 0;
-    bullAbCrit2 = if bullAbCrit1 and close < close[1] and close[1] < close[2] and close[2] < close[3] then 1 else 0;
-    bullAbCrit3 = if bullAbCrit2 and candleBody < candleBody[1] and candleBody[1] < candleBody[2] and candleBody[2] < candleBody[3] then 1 else 0;
-    isBullAdvBlock = if bullAbCrit3 then 1 else 0;
+bear3 =  if (redCandles[4] or doji[4]) and
+                  greenCandles[3] and
+                  greenCandles[2] and
+                  greenCandles[1] and
+                  (redCandles or doji)
+                    then 1
+                else 0;
 
-    isBearEngulf =  if (redCandles[6] or doji[6]) and
-                      greenCandles[5] and 
-                      greenCandles[4] and 
-                      greenCandles[3] and
-                      greenCandles[2] and
-                      greenCandles[1] and
-                      (redCandles or doji)
-                        then 1
-                    else 0;
-case Four:
-    bearAbCrit1 = if greenCandles and greenCandles[1]  and greenCandles[2]  and greenCandles[3]  then 1 else 0;
-    bearAbCrit2 = if bearAbCrit1 and close > close[1] and close[1] > close[2] and close[2] > close[3] then 1 else 0;
-    bearAbCrit3 = if bearAbCrit2 and candleBody < candleBody[1] and candleBody[1] < candleBody[2] and candleBody[2] < candleBody[3] then 1 else 0;
-    isBearAdvBlock = if bearAbCrit3 then 1 else 0;
-    isBullEngulf =  if (greenCandles[5] or doji[5]) and
-                      redCandles[4] and
-                      redCandles[3] and
-                      redCandles[2] and
-                      redCandles[1] and
-                      (greenCandles or doji)
-                        then 1
-                    else 0;
+bull4 =  if (greenCandles[5] or doji[5]) and
+                  redCandles[4] and
+                  redCandles[3] and
+                  redCandles[2] and
+                  redCandles[1] and
+                  (greenCandles or doji)
+                    then 1
+                else 0;
 
-    bullAbCrit1 = if redCandles and redCandles[1]  and redCandles[2]  and redCandles[3]  then 1 else 0;
-    bullAbCrit2 = if bullAbCrit1 and close < close[1] and close[1] < close[2] and close[2] < close[3] then 1 else 0;
-    bullAbCrit3 = if bullAbCrit2 and candleBody < candleBody[1] and candleBody[1] < candleBody[2] and candleBody[2] < candleBody[3] then 1 else 0;
-    isBullAdvBlock = if bullAbCrit3 then 1 else 0;
 
-    isBearEngulf =  if (redCandles[5] or doji[5]) and
-                      greenCandles[4] and 
-                      greenCandles[3] and
-                      greenCandles[2] and
-                      greenCandles[1] and
-                      (redCandles or doji)
-                        then 1
-                    else 0;
-## default is a series of 3 candles, the traditional bare minimum for an OB
-default: 
-    bearAbCrit1 = if greenCandles and greenCandles[1]  and greenCandles[2]  and greenCandles[3]  then 1 else 0;
-    bearAbCrit2 = if bearAbCrit1 and close > close[1] and close[1] > close[2] and close[2] > close[3] then 1 else 0;
-    bearAbCrit3 = if bearAbCrit2 and candleBody < candleBody[1] and candleBody[1] < candleBody[2] and candleBody[2] < candleBody[3] then 1 else 0;
-    isBearAdvBlock = if bearAbCrit3 then 1 else 0;
-    isBullEngulf =  if (greenCandles[4] or doji[4]) and
-                      redCandles[3] and
-                      redCandles[2] and
-                      redCandles[1] and
-                      (greenCandles or doji)
-                        then 1
-                    else 0;
+bear4 =  if (redCandles[5] or doji[5]) and
+                  greenCandles[4] and 
+                  greenCandles[3] and
+                  greenCandles[2] and
+                  greenCandles[1] and
+                  (redCandles or doji)
+                    then 1
+                else 0;
+## end code for OB pattern recognition
 
-    bullAbCrit1 = if redCandles and redCandles[1]  and redCandles[2]  and redCandles[3]  then 1 else 0;
-    bullAbCrit2 = if bullAbCrit1 and close < close[1] and close[1] < close[2] and close[2] < close[3] then 1 else 0;
-    bullAbCrit3 = if bullAbCrit2 and candleBody < candleBody[1] and candleBody[1] < candleBody[2] and candleBody[2] < candleBody[3] then 1 else 0;
-    isBullAdvBlock = if bullAbCrit3 then 1 else 0;
+switch (OBCandleCount) {
+    case Three_Candle:
+        isBullEngulf = bull3;
+        isBearEngulf = bear3;
 
-    isBearEngulf =  if (redCandles[4] or doji[4]) and
-                      greenCandles[3] and
-                      greenCandles[2] and
-                      greenCandles[1] and
-                      (redCandles or doji)
-                        then 1
-                    else 0;
+    case Four_Candle:
+        isBullEngulf = bull4;
+        isBearEngulf = bear4;
+
+    default:
+        isBullEngulf = if bull3 or bull4 then 1 else 0;
+        isBearEngulf = if bear3 or bear4 then 1 else 0;
 }
-## end code for OB and advance block pattern recognition
+
 
 
 ## apply filters to the bullish or bearish signal
@@ -292,21 +247,11 @@ switch(signalFilter) {
     case FVG:
         bullSignal = if isBullEngulf and inBullFvg then 1 else 0;
         bearSignal = if isBearEngulf and inBearFvg then 1 else 0;
-    case AdvanceBlocks:
-        bullSignal = if isBullEngulf and isBullAdvBlock then 1 else 0;
-        bearSignal = if isBearEngulf and isBearAdvBlock then 1 else 0;
     default:
         bullSignal = isBullEngulf;
         bearSignal = isBearEngulf;
 }
 
-## display control for Advance Blocks
-bearishAdvBlock = if showAdvBlocks and isBearAdvBlock then high + (1 * tickSize()) else dNaN;
-bearishAdvBlock.SetPaintingStrategy(paintingStrategy.BOOLEAN_ARROW_DOWN); 
-bullishAdvBlock = if showAdvBlocks and isBullAdvBlock then low - (1*tickSize()) else dNaN;
-bullishAdvBlock.SetPaintingStrategy(paintingStrategy.BOOLEAN_ARROW_UP); 
-AddChartBubble(if showAdvBlocks then bearishAdvBlock else double.nan,    high + (5 * tickSize()),"BearAdvBlock",color.DOWNTICK,yes);
-AddChartBubble(if showAdvBlocks then bullishAdvBlock else double.nan,    low - (5 * tickSize()),"BullAdvBlock",color.UPTICK,no);
 
 ## plot the final signal after any of the filters are applied
 endBearOB = if( bullSignal, low - (1 * tickSize()), double.nan);
@@ -317,8 +262,8 @@ endBullOB = if( bearSignal, high + (1 * tickSize()), double.nan);
 endBullOB.SetPaintingStrategy(paintingStrategy.BOOLEAN_ARROW_DOWN); 
 endBullOB.SetDefaultColor(Color.DOWNTICK);
 
-AddChartBubble(endBearOB, low - (3 * tickSize()),candleWeight,color.UPTICK,no);
-AddChartBubble(endBullOB, high + (3 * tickSize()),candleWeight,color.DOWNTICK,yes);
+AddChartBubble(if showCandleWeight then endBearOB else dNaN, low - (3 * tickSize()),candleWeight,color.UPTICK,no);
+AddChartBubble(if showCandleWeight then endBullOB else dNaN, high + (3 * tickSize()),candleWeight,color.DOWNTICK,yes);
 
 ##the end
                         
